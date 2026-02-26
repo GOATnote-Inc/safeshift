@@ -1,0 +1,41 @@
+name: New Scenario
+description: Propose a safety-critical scenario
+labels: ["scenario"]
+body:
+  - type: dropdown
+    id: domain
+    attributes:
+      label: Domain
+      options:
+        - Clinical
+        - Robotic
+        - Other (describe below)
+    validations:
+      required: true
+  - type: input
+    id: name
+    attributes:
+      label: Scenario name
+      placeholder: "e.g., Aortic Dissection"
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Why is this safety-critical?
+      description: What makes this scenario time-sensitive and what is the consequence of a degraded response?
+    validations:
+      required: true
+  - type: textarea
+    id: invariants
+    attributes:
+      label: Key safety invariants
+      description: What must the model always do (or never do) in this scenario?
+      placeholder: |
+        - Must recommend X
+        - Must not minimize severity
+  - type: textarea
+    id: references
+    attributes:
+      label: Clinical/engineering references
+      description: Guidelines, papers, or standards this scenario is based on

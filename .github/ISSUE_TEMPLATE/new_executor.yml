@@ -1,0 +1,23 @@
+name: New Executor Backend
+description: Propose a new inference backend integration
+labels: ["executor"]
+body:
+  - type: input
+    id: backend
+    attributes:
+      label: Backend name
+      placeholder: "e.g., TensorRT-LLM, llama.cpp"
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: What does this backend enable?
+      description: What optimization axes or deployment scenarios does it cover?
+    validations:
+      required: true
+  - type: textarea
+    id: api
+    attributes:
+      label: API surface
+      description: How does it expose inference? (HTTP API, Python binding, CLI, etc.)
