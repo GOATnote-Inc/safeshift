@@ -1,0 +1,53 @@
+name: Integration (GPU Smoke)
+
+on:
+  workflow_dispatch:
+    inputs:
+      executor:
+        description: "Executor to test"
+        required: true
+        default: "mock"
+        type: choice
+        options:
+          - mock
+          - api
+          - vllm
+      model:
+        description: "Model to test"
+        required: false
+        default: "mock-model"
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install
+        run: pip install -e ".[dev]"
+
+      - name: Run smoke test
+        run: |
+          safeshift run \
+            --matrix configs/matrices/quick_matrix.yaml \
+            --executor ${{ inputs.executor }} \
+            --model ${{ inputs.model }} \
+            --pattern-only \
+            --output results/smoke
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+      - name: Analyze results
+        run: safeshift analyze --results results/smoke/
+
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-results
+          path: results/smoke/

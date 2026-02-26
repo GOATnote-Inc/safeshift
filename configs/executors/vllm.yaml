@@ -1,0 +1,5 @@
+executor:
+  type: vllm
+  description: vLLM backend (OpenAI-compatible API)
+  base_url: http://localhost:8000/v1
+  # Set VLLM_BASE_URL and optionally VLLM_API_KEY in environment

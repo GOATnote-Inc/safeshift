@@ -1,0 +1,4 @@
+executor:
+  type: mock
+  description: Deterministic mock executor for development and testing
+  seed: 42

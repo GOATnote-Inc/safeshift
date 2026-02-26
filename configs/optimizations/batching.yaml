@@ -1,0 +1,36 @@
+optimizations:
+  - id: batch_1
+    name: Batch Size 1
+    is_baseline: true
+    description: Single request (no batching)
+    axes:
+      - name: batch_size
+        value: 1
+
+  - id: batch_4
+    name: Batch Size 4
+    description: Small batch — typical API server
+    axes:
+      - name: batch_size
+        value: 4
+
+  - id: batch_8
+    name: Batch Size 8
+    description: Medium batch
+    axes:
+      - name: batch_size
+        value: 8
+
+  - id: batch_16
+    name: Batch Size 16
+    description: Large batch — high-throughput serving
+    axes:
+      - name: batch_size
+        value: 16
+
+  - id: batch_32
+    name: Batch Size 32
+    description: Very large batch — peak throughput
+    axes:
+      - name: batch_size
+        value: 32

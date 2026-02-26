@@ -1,0 +1,22 @@
+name: default_matrix
+description: |
+  Full evaluation matrix: all scenarios x quantization + batching + composite optimizations.
+  Expected runtime with mock: ~2 min. With real GPU: ~30-60 min depending on model.
+
+scenario_paths:
+  - scenarios/clinical
+  - scenarios/robotic
+
+optimization_paths:
+  - optimizations/quantization.yaml
+  - optimizations/batching.yaml
+  - optimizations/composite.yaml
+
+executor: mock
+model: mock-model
+judge_model: gpt-4o
+temperature: 0.0
+seed: 42
+max_tokens: 4096
+n_trials: 1
+output_dir: results/default

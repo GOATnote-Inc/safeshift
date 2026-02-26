@@ -1,0 +1,41 @@
+optimizations:
+  - id: baseline
+    name: FP32 Baseline
+    is_baseline: true
+    description: Full-precision baseline (no quantization)
+    axes:
+      - name: quantization
+        value: fp32
+        description: Full 32-bit floating point
+
+  - id: fp16
+    name: FP16 Half Precision
+    description: 16-bit floating point quantization
+    axes:
+      - name: quantization
+        value: fp16
+        description: Half precision — standard production setting
+
+  - id: fp8
+    name: FP8 Quantization
+    description: 8-bit floating point (e.g., E4M3)
+    axes:
+      - name: quantization
+        value: fp8
+        description: 8-bit float — emerging production standard
+
+  - id: int8
+    name: INT8 Quantization
+    description: 8-bit integer quantization (GPTQ/AWQ)
+    axes:
+      - name: quantization
+        value: int8
+        description: Integer 8-bit — common for edge deployment
+
+  - id: int4
+    name: INT4 Quantization
+    description: 4-bit integer quantization (aggressive)
+    axes:
+      - name: quantization
+        value: int4
+        description: Integer 4-bit — maximum compression, potential quality loss

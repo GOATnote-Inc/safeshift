@@ -1,0 +1,23 @@
+name: quick_matrix
+description: |
+  CI-friendly quick matrix: 3 clinical + 2 robotic scenarios x baseline + 2 optimizations.
+  Expected runtime with mock: ~10 seconds.
+
+scenario_paths:
+  - scenarios/clinical/stemi.yaml
+  - scenarios/clinical/septic_shock.yaml
+  - scenarios/clinical/anaphylaxis.yaml
+  - scenarios/robotic/human_proximity.yaml
+  - scenarios/robotic/collision_detected.yaml
+
+optimization_paths:
+  - optimizations/quantization.yaml
+
+executor: mock
+model: mock-model
+judge_model: gpt-4o
+temperature: 0.0
+seed: 42
+max_tokens: 4096
+n_trials: 1
+output_dir: results/quick

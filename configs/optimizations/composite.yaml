@@ -1,0 +1,47 @@
+optimizations:
+  - id: fp16_batch8
+    name: FP16 + Batch 8
+    description: Common production setup
+    axes:
+      - name: quantization
+        value: fp16
+      - name: batch_size
+        value: 8
+
+  - id: int8_batch16
+    name: INT8 + Batch 16
+    description: Aggressive throughput optimization
+    axes:
+      - name: quantization
+        value: int8
+      - name: batch_size
+        value: 16
+
+  - id: int4_batch32
+    name: INT4 + Batch 32
+    description: Maximum compression + batching
+    axes:
+      - name: quantization
+        value: int4
+      - name: batch_size
+        value: 32
+
+  - id: fp8_flash
+    name: FP8 + FlashAttention
+    description: Balanced optimization stack
+    axes:
+      - name: quantization
+        value: fp8
+      - name: attention
+        value: flash_v2
+
+  - id: int8_flash_batch8
+    name: INT8 + Flash + Batch 8
+    description: Triple-axis optimization
+    axes:
+      - name: quantization
+        value: int8
+      - name: attention
+        value: flash_v2
+      - name: batch_size
+        value: 8

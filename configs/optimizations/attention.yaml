@@ -1,0 +1,8 @@
+optimizations:
+  - id: flash_attention
+    name: FlashAttention v2
+    description: Memory-efficient attention kernel
+    axes:
+      - name: attention
+        value: flash_v2
+        description: FlashAttention v2 — near-lossless speedup

@@ -1,0 +1,5 @@
+executor:
+  type: api
+  description: Cloud API executor (OpenAI or Anthropic)
+  provider: openai
+  # Set OPENAI_API_KEY or ANTHROPIC_API_KEY in environment

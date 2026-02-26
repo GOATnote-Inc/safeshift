@@ -1,0 +1,9 @@
+# Speculative decoding configurations — stub for v0.1
+optimizations:
+  - id: speculative
+    name: Speculative Decoding
+    description: Draft model + verification (stub config)
+    axes:
+      - name: speculative
+        value: enabled
+        description: Speculative decoding with draft model
