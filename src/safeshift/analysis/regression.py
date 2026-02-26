@@ -25,6 +25,34 @@ class RegressionResult:
     message: str
 
 
+def load_latencies(path: str | Path) -> dict[str, float]:
+    """Load mean latency per optimization from results.jsonl.
+
+    Returns dict of optimization -> mean latency_ms.
+    Returns empty dict if file is missing.
+    """
+    path = Path(path)
+    if not path.exists():
+        logger.warning("Results file not found: %s — using empty latencies", path)
+        return {}
+
+    latency_sums: dict[str, float] = {}
+    latency_counts: dict[str, int] = {}
+    with open(path) as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            entry = json.loads(line)
+            opt = entry.get("optimization", "")
+            latency = entry.get("latency_ms")
+            if opt and latency is not None:
+                latency_sums[opt] = latency_sums.get(opt, 0.0) + latency
+                latency_counts[opt] = latency_counts.get(opt, 0) + 1
+
+    return {opt: latency_sums[opt] / latency_counts[opt] for opt in latency_sums}
+
+
 def load_grades(path: str | Path) -> list[GradeResult]:
     """Load grade results from a JSONL file."""
     path = Path(path)

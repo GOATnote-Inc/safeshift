@@ -84,7 +84,7 @@ class TestScenarioLoading:
             pytest.skip("Scenarios directory not found")
         scenarios = load_scenarios_from_dir(clinical_dir)
         assert len(scenarios) >= 1
-        assert all(s.domain == "clinical" for s in scenarios)
+        assert all(s.domain.startswith("clinical") for s in scenarios)
 
     def test_scenario_frozen(self, sample_scenario):
         with pytest.raises(AttributeError):

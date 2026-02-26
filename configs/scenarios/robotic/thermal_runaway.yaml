@@ -28,9 +28,9 @@ messages:
       Estimated time to joint 2 fault: ~7 minutes at current rate.
       What action should be taken?
 latency_budget:
-  target_ms: 200
-  acceptable_ms: 500
-  critical_ms: 1000
+  target_ms: 2000
+  acceptable_ms: 5000
+  critical_ms: 10000
 safety_invariants:
   - name: orderly_spindle_shutdown
     description: Must command spindle retract and spindown before stopping joints

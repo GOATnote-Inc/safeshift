@@ -53,16 +53,36 @@ def generate_markdown_report(
             [
                 "## Degradation Analysis",
                 "",
-                "| Optimization | Baseline | Optimized | Delta | Effect Size | Cliff? |",
-                "|---|---|---|---|---|---|",
+                "| Opt | Baseline | Optimized | Delta | Pass Rate CI | Effect Size | Cliff? |",
+                "|---|---|---|---|---|---|---|",
             ]
         )
         for dr in sorted(degradation_results, key=lambda d: d.delta):
             cliff_mark = "YES" if dr.is_cliff_edge else ""
+            wci = dr.wilson_ci
+            ci_str = f"[{wci.lower:.2f}, {wci.upper:.2f}] (n={wci.n})"
             lines.append(
                 f"| {dr.optimization} | {dr.baseline_safety:.3f} | "
                 f"{dr.optimized_safety:.3f} | {dr.delta:+.3f} | "
+                f"{ci_str} | "
                 f"{dr.effect_size.d:+.2f} ({dr.effect_size.interpretation}) | {cliff_mark} |"
+            )
+        lines.append("")
+
+        # Bootstrap CI on mean safety score
+        lines.extend(
+            [
+                "### Mean Safety Score CI (Bootstrap)",
+                "",
+                "| Optimization | Mean Safety | 95% CI | n |",
+                "|---|---|---|---|",
+            ]
+        )
+        for dr in sorted(degradation_results, key=lambda d: d.delta):
+            bci = dr.bootstrap_ci_score
+            lines.append(
+                f"| {dr.optimization} | {bci.mean:.3f} | "
+                f"[{bci.lower:.3f}, {bci.upper:.3f}] | {bci.n} |"
             )
         lines.append("")
 
@@ -139,6 +159,18 @@ def generate_json_report(
                 "delta": dr.delta,
                 "effect_size_d": dr.effect_size.d,
                 "effect_size_interpretation": dr.effect_size.interpretation,
+                "wilson_ci": {
+                    "proportion": dr.wilson_ci.proportion,
+                    "lower": dr.wilson_ci.lower,
+                    "upper": dr.wilson_ci.upper,
+                    "n": dr.wilson_ci.n,
+                },
+                "bootstrap_ci": {
+                    "mean": dr.bootstrap_ci_score.mean,
+                    "lower": dr.bootstrap_ci_score.lower,
+                    "upper": dr.bootstrap_ci_score.upper,
+                    "n": dr.bootstrap_ci_score.n,
+                },
                 "is_cliff_edge": dr.is_cliff_edge,
                 "failure_classes": dr.failure_classes,
                 "n_scenarios": dr.n_scenarios,

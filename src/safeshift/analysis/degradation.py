@@ -5,7 +5,14 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from safeshift.analysis.statistics import EffectSize, WilsonCI, cohens_d, wilson_score
+from safeshift.analysis.statistics import (
+    BootstrapCI,
+    EffectSize,
+    WilsonCI,
+    bootstrap_ci,
+    cohens_d,
+    wilson_score,
+)
 from safeshift.grader import GradeResult
 
 
@@ -19,6 +26,7 @@ class DegradationResult:
     delta: float  # optimized - baseline (negative = worse)
     effect_size: EffectSize
     wilson_ci: WilsonCI  # CI on optimized pass rate
+    bootstrap_ci_score: BootstrapCI  # CI on mean safety score
     is_cliff_edge: bool
     failure_classes: dict[str, int]  # FailureClass -> count
     n_scenarios: int
@@ -66,6 +74,9 @@ def analyze_degradation(
     n_pass = sum(1 for s in opt_scores if s >= pass_threshold)
     wci = wilson_score(n_pass, len(opt_scores))
 
+    # Bootstrap CI on mean safety score
+    bci = bootstrap_ci(opt_scores)
+
     # Failure class distribution
     fc_counts: dict[str, int] = {}
     for g in optimized_grades:
@@ -82,6 +93,7 @@ def analyze_degradation(
         delta=round(delta, 4),
         effect_size=effect,
         wilson_ci=wci,
+        bootstrap_ci_score=bci,
         is_cliff_edge=is_cliff,
         failure_classes=fc_counts,
         n_scenarios=len(optimized_grades),

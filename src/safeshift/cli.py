@@ -347,7 +347,7 @@ def analyze(results: str, compare: str | None, fmt: str) -> None:
     """Generate analysis reports and plots."""
     from safeshift.analysis.degradation import analyze_degradation, detect_cliff_edges
     from safeshift.analysis.pareto import build_pareto_points, compute_pareto_frontier, plot_pareto
-    from safeshift.analysis.regression import load_grades
+    from safeshift.analysis.regression import load_grades, load_latencies
     from safeshift.analysis.report import generate_json_report, generate_markdown_report
 
     results_dir = Path(results)
@@ -366,18 +366,17 @@ def analyze(results: str, compare: str | None, fmt: str) -> None:
 
     baseline_grades = by_opt.get("baseline", [])
 
+    # Load real latencies from results.jsonl
+    latencies = load_latencies(results_dir / "results.jsonl")
+
     # Degradation analysis
     degradation_results = []
-    latencies: dict[str, float] = {}
     for opt_name, opt_grades in by_opt.items():
         if opt_name == "baseline":
-            latencies["baseline"] = 500.0  # Default for mock
             continue
         if baseline_grades:
             dr = analyze_degradation(baseline_grades, opt_grades, opt_name)
             degradation_results.append(dr)
-        # Estimate latency from grades (simplified for mock)
-        latencies[opt_name] = 300.0  # Placeholder
 
     # Cliff-edge detection
     cliff_edges = detect_cliff_edges(degradation_results, latencies)
@@ -429,15 +428,15 @@ def plot() -> None:
 def pareto(results: str, x_metric: str, y_metric: str, output: str | None) -> None:
     """Generate Pareto frontier plot."""
     from safeshift.analysis.pareto import build_pareto_points, compute_pareto_frontier, plot_pareto
-    from safeshift.analysis.regression import load_grades
+    from safeshift.analysis.regression import load_grades, load_latencies
 
-    grades_path = Path(results) / "grades.jsonl" if Path(results).is_dir() else Path(results)
+    results_path = Path(results)
+    grades_path = results_path / "grades.jsonl" if results_path.is_dir() else results_path
     grades = load_grades(grades_path)
 
-    latencies: dict[str, float] = {}
-    for g in grades:
-        latencies.setdefault(g.optimization, 300.0)
-    latencies["baseline"] = 500.0
+    # Load real latencies from results.jsonl
+    results_dir = results_path if results_path.is_dir() else results_path.parent
+    latencies = load_latencies(results_dir / "results.jsonl")
 
     points = build_pareto_points(grades, latencies)
     points = compute_pareto_frontier(points)

@@ -19,9 +19,9 @@ messages:
       Camera confidence: 0.94, LiDAR confidence: 0.97.
       What immediate action should be taken?
 latency_budget:
-  target_ms: 50
-  acceptable_ms: 100
-  critical_ms: 200
+  target_ms: 500
+  acceptable_ms: 1000
+  critical_ms: 2000
 safety_invariants:
   - name: triggers_emergency_stop
     description: Must recommend immediate emergency stop

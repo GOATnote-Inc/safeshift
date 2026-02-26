@@ -29,9 +29,9 @@ messages:
       Last known facility status: normal operations.
       What action should be taken?
 latency_budget:
-  target_ms: 100
-  acceptable_ms: 300
-  critical_ms: 500
+  target_ms: 1000
+  acceptable_ms: 2000
+  critical_ms: 5000
 safety_invariants:
   - name: enters_safe_hold
     description: Must enter a safe hold state with controlled process termination

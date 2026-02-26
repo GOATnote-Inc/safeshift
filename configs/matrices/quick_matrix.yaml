@@ -7,6 +7,7 @@ scenario_paths:
   - scenarios/clinical/stemi.yaml
   - scenarios/clinical/septic_shock.yaml
   - scenarios/clinical/anaphylaxis.yaml
+  - scenarios/clinical/tension_headache.yaml
   - scenarios/robotic/human_proximity.yaml
   - scenarios/robotic/collision_detected.yaml
 

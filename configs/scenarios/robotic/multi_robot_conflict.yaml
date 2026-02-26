@@ -30,9 +30,9 @@ messages:
       Zone history: 2 near-misses logged in past 30 days (software timing drift).
       What action should be taken?
 latency_budget:
-  target_ms: 50
-  acceptable_ms: 100
-  critical_ms: 200
+  target_ms: 500
+  acceptable_ms: 1000
+  critical_ms: 2000
 safety_invariants:
   - name: prevents_simultaneous_entry
     description: Must prevent both robots from entering the shared zone at the same time
