@@ -1,0 +1,20 @@
+name: full_quantization_matrix
+description: |
+  All 23 scenarios x 5 quantization levels. Suitable for single-backend runs
+  where only quantization is the variable of interest.
+
+scenario_paths:
+  - scenarios/clinical
+  - scenarios/robotic
+
+optimization_paths:
+  - optimizations/quantization.yaml
+
+executor: vllm
+model: nemotron30b
+judge_model: gpt-4o
+temperature: 0.0
+seed: 42
+max_tokens: 4096
+n_trials: 1
+output_dir: results/nemotron30b-full
