@@ -124,7 +124,7 @@ safeshift analyze --results results/run_a/ --compare results/run_b/
 # Regression gate (for CI)
 safeshift regression --baseline results/baseline/ --current results/pr_branch/
 
-# Import scenarios from LostBench format
+# Import scenarios from LostBench (GOATnote safety persistence benchmark) format
 safeshift import lostbench --source /path/to/lostbench/scenarios --output configs/scenarios/
 ```
 
@@ -146,7 +146,7 @@ make smoke      # quick matrix run with mock executor
 make format     # auto-format
 ```
 
-**125 tests.** All pass with no external dependencies (mock executor, no API keys needed).
+**140 tests.** All pass with no external dependencies (mock executor, no API keys needed).
 
 ## Design Principles
 
@@ -160,6 +160,18 @@ make format     # auto-format
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for how to add scenarios, executor backends, and grading dimensions.
+
+## Part of the GOATnote Evaluation Program
+
+| Repository | Purpose |
+|------------|---------|
+| [LostBench](https://github.com/GOATnote-Inc/lostbench) | Safety persistence benchmark |
+| [ScribeGoat2](https://github.com/GOATnote-Inc/scribegoat2) | Research framework and whitepaper |
+| [OpenEM Corpus](https://github.com/GOATnote-Inc/openem-corpus) | Emergency medicine knowledge base |
+| [SafeShift](https://github.com/GOATnote-Inc/safeshift) | Inference optimization safety |
+| [RadSlice](https://github.com/GOATnote-Inc/radslice) | Multimodal radiology benchmark |
+
+Architecture overview: [CROSS_REPO_ARCHITECTURE.md](https://github.com/GOATnote-Inc/scribegoat2/blob/main/docs/CROSS_REPO_ARCHITECTURE.md)
 
 ## License
 
