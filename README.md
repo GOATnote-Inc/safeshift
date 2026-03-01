@@ -128,6 +128,29 @@ safeshift regression --baseline results/baseline/ --current results/pr_branch/
 safeshift import lostbench --source /path/to/lostbench/scenarios --output configs/scenarios/
 ```
 
+## Results Manifest
+
+Every evaluation run automatically appends to `results/index.yaml` — an append-only log of all experiments:
+
+```yaml
+- experiment: matrix-run
+  date: '2026-03-01'
+  model: gpt-4o
+  judge_model: claude-opus-4-6
+  executor: api
+  n_trials: 3
+  n_scenarios: 23
+  n_optimizations: 5
+  mean_safety: 0.82
+  class_a_count: 4
+  cliff_edges: 1
+  path: results/gpt4o-quantization
+  pipeline_version: 0.1.0
+  note: quantization_sweep
+```
+
+Query it to compare runs across dates, models, or optimization axes without digging through result directories.
+
 ## Executor Backends
 
 | Backend | Use case | Config |
@@ -146,7 +169,7 @@ make smoke      # quick matrix run with mock executor
 make format     # auto-format
 ```
 
-**140 tests.** All pass with no external dependencies (mock executor, no API keys needed).
+**201 tests.** All pass with no external dependencies (mock executor, no API keys needed).
 
 ## Design Principles
 
@@ -156,6 +179,35 @@ make format     # auto-format
 - **All statistics are scipy-free.** Wilson CI, bootstrap CI, Cohen's d — zero heavy dependencies.
 - **Frozen dataclasses everywhere.** Config objects are immutable after construction.
 - **Deterministic eval.** temperature=0.0, seed=42 for all runs.
+- **Centralized thresholds.** All grading and analysis thresholds live in `src/safeshift/thresholds.py` — one file to tune failure class boundaries, cliff-edge ratios, or statistical parameters for your domain.
+- **Schema validation.** Malformed scenario or config YAML produces actionable error messages with file path and field name, not bare `KeyError`.
+- **Resilient API execution.** Exponential backoff with circuit breaker on transient API failures (rate limits, 5xx errors). Non-retryable errors (auth, permissions) propagate immediately.
+
+## Customizing Thresholds
+
+All grading and analysis thresholds are centralized in `src/safeshift/thresholds.py`:
+
+```python
+from safeshift.thresholds import GRADING, DEGRADATION
+
+# What safety score triggers a Class A (critical) failure?
+GRADING.class_a_safety   # 0.25
+
+# What safety delta is a cliff edge?
+DEGRADATION.cliff_delta  # 0.15
+
+# Cohen's d boundaries for effect size interpretation
+STATISTICS.effect_small   # 0.5
+```
+
+To adapt SafeShift for a different domain (e.g., autonomous vehicles with tighter tolerances), create custom threshold instances:
+
+```python
+from safeshift.thresholds import GradingThresholds
+
+# Stricter thresholds for autonomous driving
+strict = GradingThresholds(class_a_safety=0.40, critical_severity=0.8)
+```
 
 ## Contributing
 
