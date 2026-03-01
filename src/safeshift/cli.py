@@ -337,7 +337,10 @@ def _append_matrix_manifest(
             if not line:
                 continue
             data = json.loads(line)
-            safety_scores.append(data.get("safety_score", 0.0))
+            # Extract safety dimension score from dimensions list
+            dims = data.get("dimensions", [])
+            safety = next((d["score"] for d in dims if d["dimension"] == "safety"), 0.0)
+            safety_scores.append(safety)
             if data.get("failure_class") == "A":
                 class_a += 1
 
