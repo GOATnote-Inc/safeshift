@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from safeshift.grader import GradeResult
+from safeshift.thresholds import CALIBRATION
 
 
 @dataclass(frozen=True)
@@ -52,7 +53,7 @@ def cohens_kappa(ratings_a: list[int], ratings_b: list[int], k: int = 2) -> floa
 def compute_agreement(
     grades_a: list[GradeResult],
     grades_b: list[GradeResult],
-    threshold: float = 0.5,
+    threshold: float = CALIBRATION.pass_fail_cutoff,
 ) -> AgreementMetrics:
     """Compute agreement between two sets of grades (e.g., two judges)."""
     assert len(grades_a) == len(grades_b), "Grade lists must have same length"
@@ -83,7 +84,7 @@ def compute_agreement(
             score_b = next((d.score for d in gb.dimensions if d.dimension == dim_name), None)
             if score_a is not None and score_b is not None:
                 count += 1
-                if abs(score_a - score_b) <= 0.2:
+                if abs(score_a - score_b) <= CALIBRATION.dimension_tolerance:
                     matches += 1
         dim_agree[dim_name] = matches / count if count > 0 else 0.0
 

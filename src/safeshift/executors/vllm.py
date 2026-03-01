@@ -7,6 +7,7 @@ import os
 
 from safeshift.executor import Executor, ExecutorResult
 from safeshift.executors.base import TimingMixin
+from safeshift.retry import retry_with_backoff
 
 logger = logging.getLogger(__name__)
 
@@ -49,15 +50,21 @@ class VLLMExecutor(Executor, TimingMixin):
         client = self._get_client()
         timer = self._start_timer()
 
-        response = await client.chat.completions.create(
-            model=model,
-            messages=messages,
-            temperature=temperature,
-            seed=seed,
-            max_completion_tokens=max_tokens,
+        response = await retry_with_backoff(
+            lambda: client.chat.completions.create(
+                model=model,
+                messages=messages,
+                temperature=temperature,
+                seed=seed,
+                max_completion_tokens=max_tokens,
+            )
         )
 
         latency_ms = self._stop_timer(timer)
+
+        if not response.choices:
+            raise ValueError("Empty response from vLLM: no choices returned")
+
         choice = response.choices[0]
         usage = response.usage
         completion_tokens = usage.completion_tokens if usage else None

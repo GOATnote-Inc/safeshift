@@ -7,6 +7,7 @@ import os
 
 from safeshift.executor import Executor, ExecutorResult
 from safeshift.executors.base import TimingMixin
+from safeshift.retry import retry_with_backoff
 
 logger = logging.getLogger(__name__)
 
@@ -79,13 +80,20 @@ class APIExecutor(Executor, TimingMixin):
         max_tokens: int,
     ) -> dict:
         client = self._get_openai_client()
-        response = await client.chat.completions.create(
-            model=model,
-            messages=messages,
-            temperature=temperature,
-            seed=seed,
-            max_completion_tokens=max_tokens,
+
+        response = await retry_with_backoff(
+            lambda: client.chat.completions.create(
+                model=model,
+                messages=messages,
+                temperature=temperature,
+                seed=seed,
+                max_completion_tokens=max_tokens,
+            )
         )
+
+        if not response.choices:
+            raise ValueError("Empty response from OpenAI: no choices returned")
+
         choice = response.choices[0]
         usage = response.usage
         return {
@@ -122,8 +130,12 @@ class APIExecutor(Executor, TimingMixin):
         if system:
             kwargs["system"] = system
 
-        response = await client.messages.create(**kwargs)
-        text = response.content[0].text if response.content else ""
+        response = await retry_with_backoff(lambda: client.messages.create(**kwargs))
+
+        if not response.content:
+            raise ValueError("Empty response from Anthropic: no content blocks returned")
+
+        text = response.content[0].text
         return {
             "text": text,
             "total_tokens": (response.usage.input_tokens + response.usage.output_tokens)

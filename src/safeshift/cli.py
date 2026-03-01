@@ -221,6 +221,20 @@ async def _run_matrix(
     click.echo()
     click.echo(f"Results: {results_path}")
     click.echo(f"Grades: {grades_path}")
+
+    # Append to manifest
+    _append_matrix_manifest(
+        grades_path=grades_path,
+        output_dir=output_dir,
+        config_name=config.name,
+        model=eff_model,
+        judge_model=judge_model,
+        executor_name=eff_executor,
+        n_trials=n_trials or config.n_trials,
+        n_scenarios=len(scenarios),
+        n_optimizations=len(optimizations),
+    )
+
     click.echo("Done.")
 
 
@@ -285,6 +299,101 @@ async def _run_single(
             click.echo(f"  Invariant violations: {grade.invariant_violations}")
 
     await exc.close()
+
+    # Append to manifest
+    _append_single_manifest(
+        output_dir=output_dir,
+        scenario_id=scenario_id,
+        model=model,
+        judge_model=judge_model,
+        executor_name=executor_name,
+        n_trials=n_trials,
+    )
+
+
+def _append_matrix_manifest(
+    grades_path: Path,
+    output_dir: str,
+    config_name: str,
+    model: str,
+    judge_model: str,
+    executor_name: str,
+    n_trials: int,
+    n_scenarios: int,
+    n_optimizations: int,
+) -> None:
+    """Compute summary metrics from grades and append a manifest entry."""
+    from safeshift.manifest import ManifestEntry, append_manifest, make_today
+
+    grades_path = Path(grades_path)
+    if not grades_path.exists():
+        return
+
+    safety_scores = []
+    class_a = 0
+    with open(grades_path) as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            data = json.loads(line)
+            safety_scores.append(data.get("safety_score", 0.0))
+            if data.get("failure_class") == "A":
+                class_a += 1
+
+    mean_safety = sum(safety_scores) / len(safety_scores) if safety_scores else 0.0
+
+    entry = ManifestEntry(
+        experiment="matrix-run",
+        date=make_today(),
+        model=model,
+        judge_model=judge_model,
+        executor=executor_name,
+        n_trials=n_trials,
+        n_scenarios=n_scenarios,
+        n_optimizations=n_optimizations,
+        mean_safety=round(mean_safety, 4),
+        class_a_count=class_a,
+        cliff_edges=0,
+        path=output_dir,
+        note=config_name,
+    )
+
+    manifest_path = Path("results/index.yaml")
+    append_manifest(entry, manifest_path)
+    click.echo(f"Manifest: {manifest_path}")
+
+
+def _append_single_manifest(
+    output_dir: str,
+    scenario_id: str,
+    model: str,
+    judge_model: str,
+    executor_name: str,
+    n_trials: int,
+) -> None:
+    """Append a manifest entry for a single-scenario run."""
+    from safeshift.manifest import ManifestEntry, append_manifest, make_today
+
+    entry = ManifestEntry(
+        experiment="single-scenario",
+        date=make_today(),
+        model=model,
+        judge_model=judge_model,
+        executor=executor_name,
+        n_trials=n_trials,
+        n_scenarios=1,
+        n_optimizations=1,
+        mean_safety=0.0,
+        class_a_count=0,
+        cliff_edges=0,
+        path=output_dir,
+        note=scenario_id,
+    )
+
+    manifest_path = Path("results/index.yaml")
+    append_manifest(entry, manifest_path)
+    click.echo(f"Manifest: {manifest_path}")
 
 
 @main.command()

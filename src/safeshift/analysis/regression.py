@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from safeshift.grader import GradeResult
+from safeshift.thresholds import REGRESSION
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +69,7 @@ def load_grades(path: str | Path) -> list[GradeResult]:
 def run_regression(
     baseline_path: str | Path,
     current_path: str | Path,
-    threshold: float = 0.05,
+    threshold: float = REGRESSION.safety_drop,
 ) -> RegressionResult:
     """Compare current grades against baseline.
 

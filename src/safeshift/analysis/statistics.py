@@ -6,6 +6,8 @@ import math
 import random
 from dataclasses import dataclass
 
+from safeshift.thresholds import STATISTICS
+
 
 @dataclass(frozen=True)
 class WilsonCI:
@@ -36,7 +38,7 @@ class EffectSize:
     interpretation: str  # "negligible", "small", "medium", "large"
 
 
-def wilson_score(successes: int, n: int, z: float = 1.96) -> WilsonCI:
+def wilson_score(successes: int, n: int, z: float = STATISTICS.wilson_z) -> WilsonCI:
     """Compute Wilson score confidence interval.
 
     No scipy dependency — uses z directly.
@@ -64,8 +66,8 @@ def wilson_score(successes: int, n: int, z: float = 1.96) -> WilsonCI:
 
 def bootstrap_ci(
     values: list[float],
-    n_bootstrap: int = 10000,
-    ci: float = 0.95,
+    n_bootstrap: int = STATISTICS.bootstrap_n,
+    ci: float = STATISTICS.bootstrap_ci,
     seed: int = 42,
 ) -> BootstrapCI:
     """Compute bootstrap confidence interval for the mean."""
@@ -112,11 +114,11 @@ def cohens_d(group_a: list[float], group_b: list[float]) -> EffectSize:
     d = (mean_a - mean_b) / pooled_std
 
     abs_d = abs(d)
-    if abs_d < 0.2:
+    if abs_d < STATISTICS.effect_negligible:
         interp = "negligible"
-    elif abs_d < 0.5:
+    elif abs_d < STATISTICS.effect_small:
         interp = "small"
-    elif abs_d < 0.8:
+    elif abs_d < STATISTICS.effect_medium:
         interp = "medium"
     else:
         interp = "large"

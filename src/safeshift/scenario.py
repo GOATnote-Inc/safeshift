@@ -9,6 +9,17 @@ from typing import Any
 
 import yaml
 
+VALID_CHECK_TYPES = {"regex", "contains", "not_contains", "judge"}
+VALID_TIME_PRESSURES = {"immediate", "minutes", "hours"}
+VALID_DOMAINS = {"clinical", "robotic", "clinical_defer", "robotic_defer"}
+
+
+def _require(data: dict, key: str, context: str) -> Any:
+    """Get a required key from a dict, raising ValueError with context on missing."""
+    if key not in data:
+        raise ValueError(f"Missing required field '{key}' in {context}")
+    return data[key]
+
 
 @dataclass(frozen=True)
 class LatencyBudget:
@@ -82,52 +93,138 @@ class Scenario:
 
 
 def load_scenario(path: str | Path) -> Scenario:
-    """Load a scenario from a YAML file."""
+    """Load a scenario from a YAML file.
+
+    Raises ValueError with actionable diagnostics on missing/invalid fields.
+    """
     path = Path(path)
-    with open(path) as f:
-        data = yaml.safe_load(f)
+    try:
+        with open(path) as f:
+            data = yaml.safe_load(f)
 
-    latency = LatencyBudget(
-        target_ms=data["latency_budget"]["target_ms"],
-        acceptable_ms=data["latency_budget"]["acceptable_ms"],
-        critical_ms=data["latency_budget"]["critical_ms"],
-    )
+        if not isinstance(data, dict):
+            raise ValueError("YAML did not parse to a dict")
 
-    invariants = [
-        SafetyInvariant(
-            name=inv["name"],
-            description=inv["description"],
-            check_type=inv["check_type"],
-            pattern=inv.get("pattern"),
-            judge_criterion=inv.get("judge_criterion"),
-            severity=inv.get("severity", 1.0),
+        # Top-level required fields
+        scenario_id = _require(data, "id", f"scenario ({path})")
+        name = _require(data, "name", f"scenario ({path})")
+        domain = _require(data, "domain", f"scenario ({path})")
+        description = _require(data, "description", f"scenario ({path})")
+        expected_action = _require(data, "expected_action", f"scenario ({path})")
+
+        # Domain validation
+        if domain not in VALID_DOMAINS:
+            raise ValueError(
+                f"Invalid domain '{domain}' in scenario ({path}). "
+                f"Must be one of: {sorted(VALID_DOMAINS)}"
+            )
+
+        # Messages validation
+        messages = _require(data, "messages", f"scenario ({path})")
+        if not isinstance(messages, list) or len(messages) == 0:
+            raise ValueError(f"'messages' must be a non-empty list in scenario ({path})")
+        for i, msg in enumerate(messages):
+            if not isinstance(msg, dict):
+                raise ValueError(f"messages[{i}] must be a dict in scenario ({path})")
+            if "role" not in msg or "content" not in msg:
+                raise ValueError(
+                    f"messages[{i}] must have 'role' and 'content' keys in scenario ({path})"
+                )
+
+        # Latency budget
+        lb_data = _require(data, "latency_budget", f"scenario ({path})")
+        latency = LatencyBudget(
+            target_ms=_require(lb_data, "target_ms", f"latency_budget in scenario ({path})"),
+            acceptable_ms=_require(
+                lb_data, "acceptable_ms", f"latency_budget in scenario ({path})"
+            ),
+            critical_ms=_require(lb_data, "critical_ms", f"latency_budget in scenario ({path})"),
         )
-        for inv in data.get("safety_invariants", [])
-    ]
 
-    constraint = ConstraintSpec(
-        description=data["constraint"]["description"],
-        time_pressure=data["constraint"]["time_pressure"],
-        consequence_of_delay=data["constraint"]["consequence_of_delay"],
-    )
+        # Validate latency values are numeric
+        for field_name in ("target_ms", "acceptable_ms", "critical_ms"):
+            val = getattr(latency, field_name)
+            if not isinstance(val, (int, float)):
+                raise ValueError(
+                    f"latency_budget.{field_name} must be numeric, "
+                    f"got {type(val).__name__} in scenario ({path})"
+                )
 
-    messages = data["messages"]
+        # Safety invariants
+        invariants = []
+        for i, inv in enumerate(data.get("safety_invariants", [])):
+            inv_ctx = f"safety_invariants[{i}] in scenario ({path})"
+            inv_name = _require(inv, "name", inv_ctx)
+            inv_desc = _require(inv, "description", inv_ctx)
+            check_type = _require(inv, "check_type", inv_ctx)
 
-    return Scenario(
-        id=data["id"],
-        name=data["name"],
-        domain=data["domain"],
-        description=data["description"],
-        messages=messages,
-        latency_budget=latency,
-        safety_invariants=invariants,
-        constraint=constraint,
-        rubric=data.get("rubric", "rubric_clinical"),
-        expected_action=data["expected_action"],
-        severity=data.get("severity", 1.0),
-        tags=data.get("tags", []),
-        metadata=data.get("metadata", {}),
-    )
+            if check_type not in VALID_CHECK_TYPES:
+                raise ValueError(
+                    f"Invalid check_type '{check_type}' in {inv_ctx}. "
+                    f"Must be one of: {sorted(VALID_CHECK_TYPES)}"
+                )
+
+            severity = inv.get("severity", 1.0)
+            if not isinstance(severity, (int, float)):
+                raise ValueError(f"severity must be numeric in {inv_ctx}")
+
+            invariants.append(
+                SafetyInvariant(
+                    name=inv_name,
+                    description=inv_desc,
+                    check_type=check_type,
+                    pattern=inv.get("pattern"),
+                    judge_criterion=inv.get("judge_criterion"),
+                    severity=severity,
+                )
+            )
+
+        # Constraint
+        constraint_data = _require(data, "constraint", f"scenario ({path})")
+        time_pressure = _require(
+            constraint_data, "time_pressure", f"constraint in scenario ({path})"
+        )
+        if time_pressure not in VALID_TIME_PRESSURES:
+            raise ValueError(
+                f"Invalid time_pressure '{time_pressure}' in constraint in scenario ({path}). "
+                f"Must be one of: {sorted(VALID_TIME_PRESSURES)}"
+            )
+
+        constraint = ConstraintSpec(
+            description=_require(
+                constraint_data, "description", f"constraint in scenario ({path})"
+            ),
+            time_pressure=time_pressure,
+            consequence_of_delay=_require(
+                constraint_data, "consequence_of_delay", f"constraint in scenario ({path})"
+            ),
+        )
+
+        # Severity validation
+        severity = data.get("severity", 1.0)
+        if not isinstance(severity, (int, float)):
+            raise ValueError(f"severity must be numeric in scenario ({path})")
+
+        return Scenario(
+            id=scenario_id,
+            name=name,
+            domain=domain,
+            description=description,
+            messages=messages,
+            latency_budget=latency,
+            safety_invariants=invariants,
+            constraint=constraint,
+            rubric=data.get("rubric", "rubric_clinical"),
+            expected_action=expected_action,
+            severity=severity,
+            tags=data.get("tags", []),
+            metadata=data.get("metadata", {}),
+        )
+
+    except ValueError:
+        raise
+    except Exception as e:
+        raise ValueError(f"Failed to load scenario from {path}: {e}") from e
 
 
 def load_scenarios_from_dir(directory: str | Path) -> list[Scenario]:
