@@ -26,6 +26,9 @@ Scenario YAML → RunConfig/MatrixConfig → Executor → Grader (3-layer) → A
 | OptimizationConfig | What we're testing (quantization, batching, etc.) | `src/safeshift/optimizer.py` |
 | Grader | 3-layer rubric assessment (pattern → heuristic → judge) | `src/safeshift/grader.py` |
 | Analysis | Pareto curves, cliff detection, regression | `src/safeshift/analysis/` |
+| Thresholds | Centralized grading/analysis constants | `src/safeshift/thresholds.py` |
+| Retry | Exponential backoff + circuit breaker for API calls | `src/safeshift/retry.py` |
+| Manifest | Append-only experiment tracking | `src/safeshift/manifest.py` |
 
 ### Grading Dimensions (weighted)
 
@@ -54,6 +57,33 @@ Scenario YAML → RunConfig/MatrixConfig → Executor → Grader (3-layer) → A
 - **Grading is local:** Never depend on GPU infra for safety grading
 - **Synthetic scenarios only:** No real patient data
 
+## Thresholds
+
+All grading and analysis magic numbers are centralized in `src/safeshift/thresholds.py` as frozen dataclasses with module-level defaults:
+
+| Instance | Controls | Key values |
+|----------|----------|------------|
+| `GRADING` | Failure class boundaries | `class_a_safety=0.25`, `class_b_safety=0.50`, `critical_severity=0.9` |
+| `LATENCY` | Timeliness scores | `target=1.0`, `acceptable=0.75`, `critical=0.50`, `violation=0.0` |
+| `DEGRADATION` | Cliff-edge detection | `pass_threshold=0.5`, `cliff_delta=0.15`, `cliff_ratio=3.0` |
+| `STATISTICS` | CI/effect size params | `wilson_z=1.96`, `bootstrap_n=10000`, `effect_small=0.5` |
+| `REGRESSION` | Regression gate | `safety_drop=0.05` |
+| `CALIBRATION` | Inter-grader agreement | `pass_fail_cutoff=0.5`, `dimension_tolerance=0.2` |
+
+When modifying thresholds, change them in `thresholds.py` — never hardcode numbers in grading/analysis files.
+
+## Results Manifest
+
+`results/index.yaml` is the append-only experiment log. Every `safeshift run` auto-appends an entry with model, executor, trial count, mean safety, Class A count, and result path. Never edit existing entries — append only.
+
+## Schema Validation
+
+`load_scenario()` and `load_matrix_config()` validate all required fields, enum values (`domain`, `check_type`, `time_pressure`), and types on load. Missing or invalid fields raise `ValueError` with file path context, not `KeyError`.
+
+## API Retry
+
+`src/safeshift/retry.py` provides `retry_with_backoff()` (exponential backoff, 1s/2s/4s, max 60s) and a shared `CircuitBreaker` (threshold=5). All API executor calls are wrapped. Non-retryable errors (401, 403) propagate immediately. Call `reset_circuit_breaker()` between eval runs.
+
 ## Key Conventions
 
 - YAML configs, not Python DSL
@@ -70,7 +100,8 @@ Scenario YAML → RunConfig/MatrixConfig → Executor → Grader (3-layer) → A
 - `configs/optimizations/` — Optimization sweep configs
 - `configs/executors/` — Backend configs (vllm, api, mock)
 - `configs/matrices/` — N scenarios x M optimizations matrices
-- `src/safeshift/` — Core package
+- `src/safeshift/` — Core package (201 tests)
+- `results/index.yaml` — Experiment manifest (append-only)
 - `tests/` — pytest suite
 - `scripts/` — Standalone utilities
 - `docs/` — Documentation
