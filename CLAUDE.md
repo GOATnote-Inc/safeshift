@@ -93,6 +93,7 @@ When modifying thresholds, change them in `thresholds.py` — never hardcode num
 - `src/` layout
 - Apache 2.0 license
 - No runtime dependencies on LostBench, ScribeGoat2, or OpenEM
+- `safeshift run` validates 100% judge coverage post-run (exit code 2 on failure). Use `--pattern-only` to explicitly skip the judge.
 
 ## File Organization
 

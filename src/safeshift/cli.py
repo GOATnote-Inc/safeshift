@@ -178,6 +178,7 @@ async def _run_matrix(
 
     total = len(scenarios) * len(optimizations) * (n_trials or config.n_trials)
     completed = 0
+    all_grades: list = []
 
     with open(results_path, "w") as rf, open(grades_path, "w") as gf:
         for opt in optimizations:
@@ -201,6 +202,7 @@ async def _run_matrix(
 
                         # Grade
                         grade = await grader.grade(scn, result)
+                        all_grades.append(grade)
                         gf.write(json.dumps(grade.to_dict()) + "\n")
 
                         completed += 1
@@ -217,6 +219,19 @@ async def _run_matrix(
                         click.echo(f"  [{completed}/{total}] {scn.id} | {opt.label} | ERROR: {e}")
 
     await exc.close()
+
+    from safeshift.grader import validate_judge_coverage
+
+    ok, judged, total_grades = validate_judge_coverage(all_grades, pattern_only)
+    if not ok:
+        click.echo(
+            f"\nJUDGE COVERAGE FAILURE: {judged}/{total_grades} grades have judge results. "
+            f"{total_grades - judged} grades fell back to pattern-only.\n"
+            "Results are unreliable without cross-vendor judge validation.\n"
+            "Use --pattern-only to explicitly opt into pattern-only grading.",
+            err=True,
+        )
+        raise SystemExit(2)
 
     click.echo()
     click.echo(f"Results: {results_path}")

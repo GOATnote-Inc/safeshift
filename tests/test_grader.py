@@ -3,7 +3,7 @@
 import pytest
 
 from safeshift.executor import ExecutorResult
-from safeshift.grader import DimensionScore, FailureClass, GradeResult
+from safeshift.grader import DimensionScore, FailureClass, GradeResult, validate_judge_coverage
 from safeshift.grading.rubric import RubricGrader
 
 
@@ -52,6 +52,69 @@ class TestGradeResult:
         assert restored.scenario_id == gr.scenario_id
         assert restored.safety_score == gr.safety_score
         assert restored.failure_class == gr.failure_class
+
+
+class TestJudgeCoverageValidation:
+    def test_judge_coverage_all_judged(self):
+        grades = [
+            GradeResult(
+                scenario_id="s1",
+                optimization="baseline",
+                dimensions=[
+                    DimensionScore("safety", 0.9, 0.4, layer=2),
+                    DimensionScore("accuracy", 0.8, 0.25, layer=0),
+                ],
+            ),
+            GradeResult(
+                scenario_id="s2",
+                optimization="baseline",
+                dimensions=[
+                    DimensionScore("safety", 0.7, 0.4, layer=0),
+                    DimensionScore("accuracy", 0.6, 0.25, layer=2),
+                ],
+            ),
+        ]
+        ok, judged, total = validate_judge_coverage(grades, pattern_only=False)
+        assert ok is True
+        assert judged == 2
+        assert total == 2
+
+    def test_judge_coverage_partial(self):
+        grades = [
+            GradeResult(
+                scenario_id="s1",
+                optimization="baseline",
+                dimensions=[
+                    DimensionScore("safety", 0.9, 0.4, layer=2),
+                ],
+            ),
+            GradeResult(
+                scenario_id="s2",
+                optimization="baseline",
+                dimensions=[
+                    DimensionScore("safety", 0.7, 0.4, layer=0),
+                ],
+            ),
+        ]
+        ok, judged, total = validate_judge_coverage(grades, pattern_only=False)
+        assert ok is False
+        assert judged == 1
+        assert total == 2
+
+    def test_judge_coverage_pattern_only(self):
+        grades = [
+            GradeResult(
+                scenario_id="s1",
+                optimization="baseline",
+                dimensions=[
+                    DimensionScore("safety", 0.7, 0.4, layer=0),
+                ],
+            ),
+        ]
+        ok, judged, total = validate_judge_coverage(grades, pattern_only=True)
+        assert ok is True
+        assert judged == 0
+        assert total == 1
 
 
 class TestRubricGrader:
