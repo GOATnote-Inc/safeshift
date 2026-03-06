@@ -2,9 +2,6 @@ name: Integration (GPU Smoke)
 
 on:
   workflow_dispatch:
-
-permissions:
-  contents: read
     inputs:
       executor:
         description: "Executor to test"
@@ -19,6 +16,9 @@ permissions:
         description: "Model to test"
         required: false
         default: "mock-model"
+
+permissions:
+  contents: read
 
 jobs:
   smoke:
