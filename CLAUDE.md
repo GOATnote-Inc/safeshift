@@ -101,7 +101,7 @@ When modifying thresholds, change them in `thresholds.py` — never hardcode num
 - `configs/optimizations/` — Optimization sweep configs
 - `configs/executors/` — Backend configs (vllm, api, mock)
 - `configs/matrices/` — N scenarios x M optimizations matrices
-- `src/safeshift/` — Core package (201 tests)
+- `src/safeshift/` — Core package (204 tests)
 - `results/index.yaml` — Experiment manifest (append-only)
 - `tests/` — pytest suite
 - `scripts/` — Standalone utilities

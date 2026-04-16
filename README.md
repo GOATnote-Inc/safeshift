@@ -48,8 +48,8 @@ Given a matrix of (scenarios x optimizations), SafeShift produces:
 
 ```
 configs/scenarios/          configs/optimizations/
-  clinical/ (15)              quantization.yaml
-  robotic/  (8)               batching.yaml
+  clinical/ (17)              quantization.yaml
+  robotic/  (10)              batching.yaml
        |                      speculative.yaml
        v                      attention.yaml
   MatrixConfig ──────────────────┐
@@ -169,7 +169,7 @@ make smoke      # quick matrix run with mock executor
 make format     # auto-format
 ```
 
-**201 tests.** All pass with no external dependencies (mock executor, no API keys needed).
+**204 tests.** All pass with no external dependencies (mock executor, no API keys needed).
 
 ## Design Principles
 
