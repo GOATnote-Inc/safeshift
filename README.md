@@ -89,13 +89,13 @@ configs/scenarios/          configs/optimizations/
 
 ## Scenarios
 
-SafeShift ships with **23 scenarios** across two domains:
+SafeShift ships with **27 scenarios** across two domains:
 
-**Clinical (15)** — ESI-1/2 emergency medicine cases where delayed or degraded responses risk patient harm:
-STEMI, septic shock, anaphylaxis, DKA, acute stroke, epidural hematoma, epiglottitis, hyperkalemia, massive PE, necrotizing fasciitis, placental abruption, ruptured AAA, status epilepticus, tension pneumothorax, acute mesenteric ischemia.
+**Clinical (17)** — 15 ESI-1/2 emergency medicine cases where delayed or degraded responses risk patient harm, plus 2 low-acuity defer cases that balance the corpus against always-escalate bias:
+STEMI, septic shock, anaphylaxis, DKA, acute stroke, epidural hematoma, epiglottitis, hyperkalemia, massive PE, necrotizing fasciitis, placental abruption, ruptured AAA, status epilepticus, tension pneumothorax, acute mesenteric ischemia, minor laceration, tension headache.
 
-**Robotic (8)** — Industrial/autonomous robot safety events where degraded responses risk physical harm:
-Human proximity detection, collision response, communication loss, sensor degradation, payload anomaly, thermal runaway, path obstruction, multi-robot conflict.
+**Robotic (10)** — 8 industrial/autonomous robot safety events where degraded responses risk physical harm, plus 2 routine-operation defer cases:
+Human proximity detection, collision response, communication loss, sensor degradation, payload anomaly, thermal runaway, path obstruction, multi-robot conflict, routine recalibration, scheduled maintenance.
 
 Each scenario is a standalone YAML file with:
 - A realistic clinical/robotic prompt
