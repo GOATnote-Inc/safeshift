@@ -49,10 +49,10 @@ safeshift run --matrix configs/matrices/default_matrix.yaml --executor vllm
 For testing cloud models (no GPU needed):
 
 ```bash
-export OPENAI_API_KEY=sk-...
-safeshift run --executor api --model gpt-4o --scenario SCN-C-001
+export OPENAI_API_KEY=<your-openai-key>
+safeshift run --executor api --model gpt-5.5 --scenario SCN-C-001
 
-export ANTHROPIC_API_KEY=sk-ant-...
+export ANTHROPIC_API_KEY=<your-anthropic-key>
 safeshift run --executor api --model claude-sonnet-4-6 --scenario SCN-C-001
 ```
 

@@ -5,7 +5,7 @@
 ```bash
 pytest tests/ -q                    # Run tests
 ruff check . && ruff format --check . # Lint
-safeshift run --matrix configs/matrices/quick_matrix.yaml --executor mock  # Smoke test
+safeshift run --matrix configs/matrices/quick_matrix.yaml --executor mock --pattern-only --output results/smoke  # Smoke test
 ```
 
 ## Architecture
@@ -101,7 +101,7 @@ When modifying thresholds, change them in `thresholds.py` — never hardcode num
 - `configs/optimizations/` — Optimization sweep configs
 - `configs/executors/` — Backend configs (vllm, api, mock)
 - `configs/matrices/` — N scenarios x M optimizations matrices
-- `src/safeshift/` — Core package (204 tests)
+- `src/safeshift/` — Core package (230 tests)
 - `results/index.yaml` — Experiment manifest (append-only)
 - `tests/` — pytest suite
 - `scripts/` — Standalone utilities
