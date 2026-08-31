@@ -170,6 +170,17 @@ class TestReportGeneration:
         assert "Mean Safety Score CI" in content
         assert "[0.400, 0.400]" in content
 
+    def test_markdown_report_contains_research_disclaimer(self):
+        from safeshift.analysis.report import DISCLAIMER
+
+        grades = [_make_grade("s1", "baseline", 0.9)]
+        with tempfile.NamedTemporaryFile(suffix=".md", delete=False) as f:
+            path = f.name
+        generate_markdown_report(grades, [], [], [], path)
+        content = open(path).read()
+        assert DISCLAIMER in content
+        assert "research benchmark" in content
+
 
 class TestLoadLatencies:
     def test_load_latencies_from_file(self):

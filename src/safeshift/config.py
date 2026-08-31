@@ -8,6 +8,8 @@ from typing import Any
 
 import yaml
 
+from safeshift.providers import DEFAULT_JUDGE_MODEL
+
 
 def _require(data: dict, key: str, context: str) -> Any:
     """Get a required key from a dict, raising ValueError with context on missing."""
@@ -24,7 +26,7 @@ class RunConfig:
     optimization_ids: list[str] = field(default_factory=list)
     executor: str = "mock"
     model: str = "mock-model"
-    judge_model: str = "gpt-4o"
+    judge_model: str = DEFAULT_JUDGE_MODEL
     temperature: float = 0.0
     seed: int = 42
     max_tokens: int = 4096
@@ -52,7 +54,7 @@ class MatrixConfig:
     executor: str = "mock"
     executor_config_path: str | None = None
     model: str = "mock-model"
-    judge_model: str = "gpt-4o"
+    judge_model: str = DEFAULT_JUDGE_MODEL
     temperature: float = 0.0
     seed: int = 42
     max_tokens: int = 4096
@@ -114,7 +116,7 @@ def load_matrix_config(path: str | Path) -> MatrixConfig:
             executor=data.get("executor", "mock"),
             executor_config_path=data.get("executor_config_path"),
             model=data.get("model", "mock-model"),
-            judge_model=data.get("judge_model", "gpt-4o"),
+            judge_model=data.get("judge_model", DEFAULT_JUDGE_MODEL),
             temperature=float(temperature),
             seed=seed,
             max_tokens=data.get("max_tokens", 4096),

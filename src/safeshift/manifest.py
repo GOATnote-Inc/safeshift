@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime
+import subprocess
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
@@ -14,12 +15,18 @@ from safeshift import __version__
 
 @dataclass(frozen=True)
 class ManifestEntry:
-    """A single experiment entry in the results manifest."""
+    """A single experiment entry in the results manifest.
+
+    Provenance rules: ``judge_model`` must be None when no LLM judge actually
+    ran (pattern-only mode), ``pattern_only`` and ``judged_fraction`` record
+    which grading layers produced the scores, and ``git_sha`` records the code
+    state, so the manifest cannot present a pattern-only run as a judged one.
+    """
 
     experiment: str  # e.g., "matrix-run", "single-scenario"
     date: str  # ISO 8601 (YYYY-MM-DD)
     model: str
-    judge_model: str
+    judge_model: str | None  # None when no LLM judge ran
     executor: str  # mock, api, vllm
     n_trials: int
     n_scenarios: int
@@ -30,6 +37,9 @@ class ManifestEntry:
     path: str  # results directory (relative)
     pipeline_version: str = __version__
     note: str = ""
+    pattern_only: bool = False
+    judged_fraction: float | None = None  # judged grades / total grades
+    git_sha: str = ""
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -75,3 +85,19 @@ def load_manifest(manifest_path: Path | str) -> list[ManifestEntry]:
 def make_today() -> str:
     """Return today's date in ISO 8601 format."""
     return datetime.date.today().isoformat()
+
+
+def current_git_sha() -> str:
+    """Return the short git SHA of the working tree, or "unknown"."""
+    try:
+        out = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return "unknown"
+    sha = out.stdout.strip()
+    return sha if out.returncode == 0 and sha else "unknown"

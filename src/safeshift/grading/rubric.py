@@ -19,6 +19,7 @@ from safeshift.grading.patterns import (
     run_robotic_patterns,
 )
 from safeshift.judge import JudgeResult, run_judge
+from safeshift.providers import DEFAULT_JUDGE_MODEL
 from safeshift.scenario import Scenario
 from safeshift.thresholds import GRADING, LATENCY
 
@@ -31,7 +32,7 @@ class RubricGrader(Grader):
     def __init__(
         self,
         judge_provider: Any = None,
-        judge_model: str = "gpt-4o",
+        judge_model: str = DEFAULT_JUDGE_MODEL,
         rubric_dir: str | Path | None = None,
         pattern_only: bool = False,
     ):

@@ -11,8 +11,27 @@ from pathlib import Path
 import click
 
 from safeshift import __version__
+from safeshift.providers import DEFAULT_JUDGE_MODEL, MissingJudgeKeyError
 
 logger = logging.getLogger(__name__)
+
+
+def _build_judge_provider_or_exit(judge_model: str, pattern_only: bool):
+    """Build the judge provider up front, failing closed before any eval work.
+
+    Returns None in --pattern-only mode. Exits 2 when the judge model has no
+    provider or its API key is missing, so a run can never burn hours and then
+    discover at grading time that every grade fell back to pattern-only.
+    """
+    if pattern_only:
+        return None
+    from safeshift.providers import build_judge_provider
+
+    try:
+        return build_judge_provider(judge_model)
+    except (MissingJudgeKeyError, ValueError) as e:
+        click.echo(f"Judge preflight failed: {e}", err=True)
+        raise SystemExit(2) from e
 
 
 def _setup_logging(verbose: bool) -> None:
@@ -38,7 +57,13 @@ def main(verbose: bool) -> None:
 @click.option("--optimization", type=str, default="baseline", help="Optimization config ID.")
 @click.option("--executor", type=str, default="mock", help="Executor: mock, api, vllm.")
 @click.option("--model", type=str, default="mock-model", help="Model name.")
-@click.option("--judge-model", type=str, default="gpt-4o", help="Judge model.")
+@click.option(
+    "--judge-model",
+    type=str,
+    default=DEFAULT_JUDGE_MODEL,
+    show_default=True,
+    help="Judge model (env: SAFESHIFT_JUDGE_MODEL).",
+)
 @click.option("--n-trials", type=int, default=1, help="Number of trials per scenario.")
 @click.option("--output", "-o", type=str, default="results", help="Output directory.")
 @click.option("--remote", type=str, default=None, help="Remote endpoint (http://host:port).")
@@ -163,8 +188,25 @@ async def _run_matrix(
         exec_kwargs["base_url"] = remote
     exc = get_executor(eff_executor, **exec_kwargs)
 
-    # Initialize grader
+    # Refuse a sweep the executor cannot actually perform: an executor that
+    # sends the identical request for every optimization label would produce
+    # +0.000 deltas by construction (a null result), not a finding.
+    non_baseline = [o.label for o in optimizations if not o.is_baseline]
+    if non_baseline and not exc.supports_optimization:
+        click.echo(
+            f"Error: executor '{exc.name}' cannot apply optimizations "
+            f"({', '.join(non_baseline)}). It sends the identical request for every "
+            "optimization label, so the sweep would not vary the independent variable. "
+            "Serve one endpoint per optimization level and run each cell separately, "
+            "or use the mock executor for pipeline testing.",
+            err=True,
+        )
+        sys.exit(2)
+
+    # Initialize judge (fail-closed preflight) and grader
+    judge_provider = _build_judge_provider_or_exit(judge_model, pattern_only)
     grader = RubricGrader(
+        judge_provider=judge_provider,
         judge_model=judge_model,
         pattern_only=pattern_only,
     )
@@ -248,6 +290,8 @@ async def _run_matrix(
         n_trials=n_trials or config.n_trials,
         n_scenarios=len(scenarios),
         n_optimizations=len(optimizations),
+        pattern_only=pattern_only,
+        judged_fraction=(judged / total_grades) if total_grades else None,
     )
 
     click.echo("Done.")
@@ -283,7 +327,23 @@ async def _run_single(
         exec_kwargs["base_url"] = remote
     exc = get_executor(executor_name, **exec_kwargs)
 
-    grader = RubricGrader(judge_model=judge_model, pattern_only=pattern_only)
+    if optimization != "baseline" and not exc.supports_optimization:
+        click.echo(
+            f"Error: executor '{exc.name}' cannot apply optimization "
+            f"'{optimization}'. It sends the identical request regardless of the "
+            "optimization label, so the result would not reflect that optimization. "
+            "Serve an endpoint configured with that optimization, or use the mock "
+            "executor for pipeline testing.",
+            err=True,
+        )
+        sys.exit(2)
+
+    judge_provider = _build_judge_provider_or_exit(judge_model, pattern_only)
+    grader = RubricGrader(
+        judge_provider=judge_provider,
+        judge_model=judge_model,
+        pattern_only=pattern_only,
+    )
 
     click.echo(f"Scenario: {scenario.id} ({scenario.name})")
     click.echo(f"Optimization: {optimization}")
@@ -293,6 +353,7 @@ async def _run_single(
     out_path = Path(output_dir)
     out_path.mkdir(parents=True, exist_ok=True)
 
+    all_grades: list = []
     for trial in range(n_trials):
         result = await exc.execute(
             messages=scenario.messages,
@@ -301,6 +362,7 @@ async def _run_single(
             seed=42 + trial,
         )
         grade = await grader.grade(scenario, result)
+        all_grades.append(grade)
 
         status = "PASS" if grade.passed else f"FAIL({grade.failure_class.value})"
         click.echo(
@@ -315,6 +377,19 @@ async def _run_single(
 
     await exc.close()
 
+    from safeshift.grader import validate_judge_coverage
+
+    ok, judged, total_grades = validate_judge_coverage(all_grades, pattern_only)
+    if not ok:
+        click.echo(
+            f"\nJUDGE COVERAGE FAILURE: {judged}/{total_grades} grades have judge results. "
+            f"{total_grades - judged} grades fell back to pattern-only.\n"
+            "Results are unreliable without cross-vendor judge validation.\n"
+            "Use --pattern-only to explicitly opt into pattern-only grading.",
+            err=True,
+        )
+        raise SystemExit(2)
+
     # Append to manifest
     _append_single_manifest(
         output_dir=output_dir,
@@ -323,6 +398,8 @@ async def _run_single(
         judge_model=judge_model,
         executor_name=executor_name,
         n_trials=n_trials,
+        pattern_only=pattern_only,
+        judged_fraction=(judged / total_grades) if total_grades else None,
     )
 
 
@@ -336,9 +413,11 @@ def _append_matrix_manifest(
     n_trials: int,
     n_scenarios: int,
     n_optimizations: int,
+    pattern_only: bool = False,
+    judged_fraction: float | None = None,
 ) -> None:
     """Compute summary metrics from grades and append a manifest entry."""
-    from safeshift.manifest import ManifestEntry, append_manifest, make_today
+    from safeshift.manifest import ManifestEntry, append_manifest, current_git_sha, make_today
 
     grades_path = Path(grades_path)
     if not grades_path.exists():
@@ -365,7 +444,7 @@ def _append_matrix_manifest(
         experiment="matrix-run",
         date=make_today(),
         model=model,
-        judge_model=judge_model,
+        judge_model=None if pattern_only else judge_model,
         executor=executor_name,
         n_trials=n_trials,
         n_scenarios=n_scenarios,
@@ -375,6 +454,9 @@ def _append_matrix_manifest(
         cliff_edges=0,
         path=output_dir,
         note=config_name,
+        pattern_only=pattern_only,
+        judged_fraction=round(judged_fraction, 4) if judged_fraction is not None else None,
+        git_sha=current_git_sha(),
     )
 
     manifest_path = Path("results/index.yaml")
@@ -389,15 +471,17 @@ def _append_single_manifest(
     judge_model: str,
     executor_name: str,
     n_trials: int,
+    pattern_only: bool = False,
+    judged_fraction: float | None = None,
 ) -> None:
     """Append a manifest entry for a single-scenario run."""
-    from safeshift.manifest import ManifestEntry, append_manifest, make_today
+    from safeshift.manifest import ManifestEntry, append_manifest, current_git_sha, make_today
 
     entry = ManifestEntry(
         experiment="single-scenario",
         date=make_today(),
         model=model,
-        judge_model=judge_model,
+        judge_model=None if pattern_only else judge_model,
         executor=executor_name,
         n_trials=n_trials,
         n_scenarios=1,
@@ -407,6 +491,9 @@ def _append_single_manifest(
         cliff_edges=0,
         path=output_dir,
         note=scenario_id,
+        pattern_only=pattern_only,
+        judged_fraction=round(judged_fraction, 4) if judged_fraction is not None else None,
+        git_sha=current_git_sha(),
     )
 
     manifest_path = Path("results/index.yaml")
@@ -417,7 +504,13 @@ def _append_single_manifest(
 @main.command()
 @click.option("--results", type=click.Path(exists=True), required=True, help="Results JSONL.")
 @click.option("--output", "-o", type=str, default=None, help="Output directory for grades.")
-@click.option("--judge-model", type=str, default="gpt-4o", help="Judge model.")
+@click.option(
+    "--judge-model",
+    type=str,
+    default=DEFAULT_JUDGE_MODEL,
+    show_default=True,
+    help="Judge model (env: SAFESHIFT_JUDGE_MODEL).",
+)
 @click.option("--pattern-only", is_flag=True, help="Pattern grading only.")
 def grade(results: str, output: str | None, judge_model: str, pattern_only: bool) -> None:
     """Offline grading of existing results."""
@@ -445,9 +538,15 @@ async def _offline_grade(
         for scn in load_scenarios_from_dir(configs_dir):
             scenarios[scn.id] = scn
 
-    grader = RubricGrader(judge_model=judge_model, pattern_only=pattern_only)
+    judge_provider = _build_judge_provider_or_exit(judge_model, pattern_only)
+    grader = RubricGrader(
+        judge_provider=judge_provider,
+        judge_model=judge_model,
+        pattern_only=pattern_only,
+    )
     grades_path = output_dir / "grades.jsonl"
 
+    all_grades: list = []
     with open(results_path) as rf, open(grades_path, "w") as gf:
         for line in rf:
             line = line.strip()
@@ -459,9 +558,23 @@ async def _offline_grade(
 
             if scenario_id in scenarios:
                 grade_result = await grader.grade(scenarios[scenario_id], result)
+                all_grades.append(grade_result)
                 gf.write(json.dumps(grade_result.to_dict()) + "\n")
             else:
                 click.echo(f"Warning: scenario {scenario_id} not found, skipping")
+
+    from safeshift.grader import validate_judge_coverage
+
+    ok, judged, total_grades = validate_judge_coverage(all_grades, pattern_only)
+    if not ok:
+        click.echo(
+            f"\nJUDGE COVERAGE FAILURE: {judged}/{total_grades} grades have judge results. "
+            f"{total_grades - judged} grades fell back to pattern-only.\n"
+            "Results are unreliable without cross-vendor judge validation.\n"
+            "Use --pattern-only to explicitly opt into pattern-only grading.",
+            err=True,
+        )
+        raise SystemExit(2)
 
     click.echo(f"Grades written to {grades_path}")
 

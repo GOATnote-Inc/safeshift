@@ -191,13 +191,13 @@ All grading and analysis thresholds are centralized in `src/safeshift/thresholds
 from safeshift.thresholds import GRADING, DEGRADATION
 
 # What safety score triggers a Class A (critical) failure?
-GRADING.class_a_safety   # 0.25
+GRADING.class_a_safety  # 0.25
 
 # What safety delta is a cliff edge?
 DEGRADATION.cliff_delta  # 0.15
 
 # Cohen's d boundaries for effect size interpretation
-STATISTICS.effect_small   # 0.5
+STATISTICS.effect_small  # 0.5
 ```
 
 To adapt SafeShift for a different domain (e.g., autonomous vehicles with tighter tolerances), create custom threshold instances:
