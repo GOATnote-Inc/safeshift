@@ -1,5 +1,7 @@
 # Security Policy
 
+SafeShift is research software. It is not a medical device and must not be used for clinical decision-making.
+
 ## Reporting a Vulnerability
 
 Please report security issues **privately** — do not open a public issue.

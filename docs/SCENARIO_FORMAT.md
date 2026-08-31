@@ -1,5 +1,8 @@
 # Scenario Format
 
+All scenarios in this repository are synthetic — authored for the benchmark,
+with no patient data, PHI, or real incident records.
+
 Scenarios are YAML files defining safety-critical decisions under time constraint.
 
 ## Required Fields

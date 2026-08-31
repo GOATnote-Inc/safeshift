@@ -1,7 +1,7 @@
 name: quick_matrix
 description: |
-  CI-friendly quick matrix: 3 clinical + 2 robotic scenarios x baseline + 2 optimizations.
-  Expected runtime with mock: ~10 seconds.
+  CI-friendly quick matrix: 4 clinical + 2 robotic scenarios x baseline + 4
+  quantization levels. Expected runtime with mock: ~10 seconds.
 
 scenario_paths:
   - scenarios/clinical/stemi.yaml

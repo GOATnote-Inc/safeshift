@@ -8,3 +8,19 @@ build/
 *.egg
 .ruff_cache/
 results/
+
+# Secrets and credentials — never commit
+.env
+.env.*
+*.pem
+*.key
+credentials*
+secrets*
+
+# OS/editor noise
+.DS_Store
+
+# Tooling caches
+.mypy_cache/
+.coverage
+htmlcov/
