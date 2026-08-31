@@ -26,7 +26,11 @@ class VLLMExecutor(Executor, TimingMixin):
 
     @property
     def supports_optimization(self) -> bool:
-        return True
+        # A single vLLM server serves ONE model build. This executor sends the
+        # identical request regardless of the optimization label, so it cannot
+        # switch quantization/batching server-side. Real sweeps need one
+        # endpoint per optimization cell, run as separate baseline-only cells.
+        return False
 
     def _get_client(self):
         if self._client is None:

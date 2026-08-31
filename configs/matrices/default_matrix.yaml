@@ -14,7 +14,6 @@ optimization_paths:
 
 executor: mock
 model: mock-model
-judge_model: gpt-4o
 temperature: 0.0
 seed: 42
 max_tokens: 4096

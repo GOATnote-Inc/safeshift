@@ -7,6 +7,7 @@ import os
 
 from safeshift.executor import Executor, ExecutorResult
 from safeshift.executors.base import TimingMixin
+from safeshift.providers import _anthropic_omits_temperature
 from safeshift.retry import retry_with_backoff
 
 logger = logging.getLogger(__name__)
@@ -124,9 +125,12 @@ class APIExecutor(Executor, TimingMixin):
         kwargs = {
             "model": model,
             "messages": api_messages,
-            "temperature": temperature,
             "max_tokens": max_tokens,
         }
+        # Opus 4.7+ and major-version-5 Claude families reject an explicit
+        # temperature (400); older models still require it for temp=0 replay.
+        if not _anthropic_omits_temperature(model):
+            kwargs["temperature"] = temperature
         if system:
             kwargs["system"] = system
 
