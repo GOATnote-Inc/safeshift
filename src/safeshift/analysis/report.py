@@ -11,6 +11,12 @@ from safeshift.analysis.degradation import CliffEdge, DegradationResult
 from safeshift.analysis.pareto import ParetoPoint
 from safeshift.grader import GradeResult
 
+DISCLAIMER = (
+    "SafeShift is a research benchmark. Scenarios are synthetic; model responses "
+    "quoted or scored here are the system under test, not medical or operational "
+    "advice. Not a medical device. Not for clinical decision-making."
+)
+
 
 def generate_markdown_report(
     grades: list[GradeResult],
@@ -126,6 +132,8 @@ def generate_markdown_report(
             lines.append(f"| {fc} | {count} | {class_desc.get(fc, '')} |")
     lines.append("")
 
+    lines.extend(["---", "", f"*{DISCLAIMER}*", ""])
+
     content = "\n".join(lines)
     Path(output_path).write_text(content)
     return str(output_path)
@@ -142,6 +150,7 @@ def generate_json_report(
     """Generate a JSON report for programmatic consumption."""
     report = {
         "generated": datetime.now(timezone.utc).isoformat(),
+        "disclaimer": DISCLAIMER,
         "metadata": metadata or {},
         "summary": {
             "n_scenarios": len(set(g.scenario_id for g in grades)),

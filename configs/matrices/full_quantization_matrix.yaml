@@ -1,7 +1,10 @@
 name: full_quantization_matrix
 description: |
-  All 23 scenarios x 5 quantization levels. Suitable for single-backend runs
-  where only quantization is the variable of interest.
+  All 23 scenarios x 5 quantization levels.
+  NOTE: a single vLLM server serves one model build, so the vllm executor
+  cannot switch quantization per cell and `safeshift run` refuses this matrix
+  on vllm. Serve one endpoint per quantization level and run each level as a
+  separate cell, or use executor: mock to test the pipeline.
 
 scenario_paths:
   - scenarios/clinical
@@ -12,7 +15,6 @@ optimization_paths:
 
 executor: vllm
 model: nemotron30b
-judge_model: gpt-4o
 temperature: 0.0
 seed: 42
 max_tokens: 4096
