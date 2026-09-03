@@ -6,6 +6,9 @@
 
 **Does making the model faster make it less safe?**
 
+
+> **Maintenance status (2026-09):** passive. This repository is kept available as a reference implementation; CI runs on pushes and pull requests only, Dependabot security alerts remain enabled, and no scheduled jobs or hosted services consume ongoing resources. No active development is planned.
+
 SafeShift benchmarks how inference optimizations — quantization, batching, speculative decoding, attention kernels — affect safety-critical model behavior. It runs the same safety scenarios across optimization levels and measures exactly where things break.
 
 ## Status
